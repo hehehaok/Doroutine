@@ -8,6 +8,8 @@ namespace KSC {
 
 pid_t GetThreadId();
 
+uint64_t GetElapsedMS();
+
 };
 
 

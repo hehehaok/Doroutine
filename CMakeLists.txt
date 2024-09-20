@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.22.0)
 
-project(test)
+project(DoroutineFromScratch)
 
 set(CMAKE_CXX_STANDARD 11)
-
+set(CXX_STANDARD_REQUIRED 11)
 
 set(CMAKE_GENERATOR "Unix Makefiles")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+set(INCLUDE ${PROJECT_SOURCE_DIR}/include)
+set(SRC ${PROJECT_SOURCE_DIR}/src)
 
-add_executable(test main.cpp doroutine.cpp doroutine.h)
+# add_subdirectory(test/testDoroutine)
+add_subdirectory(test/testScheduler)
