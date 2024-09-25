@@ -8,11 +8,11 @@ namespace KSC {
 static thread_local Scheduler *st_scheduler = nullptr; // 当前线程的调度器
 static thread_local Doroutine::ptr st_schedulerDoroutine = nullptr; // 当前线程的调度协程
 
-Scheduler::Scheduler(size_t threads, bool use_caller, const std::string &name) 
-    : m_useCaller(use_caller) 
+Scheduler::Scheduler(size_t threads, bool useCaller, const std::string &name) 
+    : m_useCaller(useCaller) 
     , m_name(name) {
 
-    if (use_caller) {
+    if (useCaller) {
         --threads;
         Doroutine::threadMainDoroutineInit();
         st_scheduler = this;
@@ -78,8 +78,11 @@ Scheduler *Scheduler::GetThis() {
     return st_scheduler;
 }
 
-Doroutine::ptr Scheduler::GetMainDoroutine() {
-    return st_schedulerDoroutine;
+// 这里直接传共享指针会导致引用计数无法减为0，从而内存泄漏
+// 具体计数有问题的点在于协程resume的时候swapcontext导致的
+// 具体原因还没有分析出来，因此先换成传原始指针
+Doroutine *Scheduler::GetMainDoroutine() {
+    return st_schedulerDoroutine.get();
 }
 
 void Scheduler::tickle() {

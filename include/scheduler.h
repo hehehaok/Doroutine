@@ -16,7 +16,7 @@ namespace KSC {
 
 class Scheduler {
 public:
-    Scheduler(size_t threads = 1, bool use_caller = true, const std::string &name = "scheduler");
+    Scheduler(size_t threads = 1, bool useCaller = true, const std::string &name = "scheduler");
     virtual ~Scheduler();
     void start();
     void stop();
@@ -37,7 +37,8 @@ public:
     }
 
     static Scheduler *GetThis();
-    static Doroutine::ptr GetMainDoroutine();
+    // static Doroutine::ptr GetMainDoroutine();
+    static Doroutine *GetMainDoroutine();
 
 protected:
     virtual void tickle();
@@ -87,13 +88,13 @@ private:
     std::vector<std::thread*> m_threadPool; // 线程池
     std::list<SchedulerTask> m_tasks; // 任务队列
     std::vector<int> m_threadIds;
-    size_t m_threadCount; // 工作线程数量，不包括use_caller的主线程
+    size_t m_threadCount; // 工作线程数量，不包括useCaller的主线程
     std::atomic<size_t> m_activeThreadCount {0};
     std::atomic<size_t> m_idleThreadCount {0};
 
     bool m_useCaller; // 是否use caller
     Doroutine::ptr m_rootDoroutine; // user_caller为true时，调度器所在线程的调度协程
-    int m_rootThreadId = 0; // use_caller为true时，调度器所在线程的id
+    int m_rootThreadId = 0; // useCaller为true时，调度器所在线程的id
 
     bool m_stopping = false; // 是否正在停止
 };

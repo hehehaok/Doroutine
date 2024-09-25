@@ -97,7 +97,6 @@ int main() {
      * 如果使用了当前线程进行调度，那么要先执行当前线程的协程调度函数，等其执行完后再返回caller协程继续往下执行
      */
     sc.stop();
-
     std::cout << "main end" << std::endl;
     return 0;
 }

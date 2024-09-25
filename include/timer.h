@@ -54,7 +54,7 @@ public:
     bool hasTimer(); // 是否有定时器
 
 protected:
-    virtual void onTimerInsertedAtFront() = 0; // 当有新的定时器插入到定时器容器的首部时，执行该函数
+    virtual void onTimerInsertedAtFront(); // 当有新的定时器插入到定时器容器的首部时，执行该函数
     void addTimer(Timer::ptr timer, writeMtx &lck); // 添加定时器（同时检测是否执行onTimerInsertedAtFront）
 
 private:
@@ -67,15 +67,7 @@ private:
     uint64_t m_previouseTime = 0; // 上一次的执行时间
 };
 
-
-
-
-
 };
-
-
-
-
 
 
 #endif

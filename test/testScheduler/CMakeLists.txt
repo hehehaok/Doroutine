@@ -2,4 +2,6 @@ add_executable(testScheduler)
 
 target_include_directories(testScheduler PRIVATE ${INCLUDE})
 
-target_sources(testScheduler PRIVATE testScheduler.cpp ${SRC}/doroutine.cpp ${SRC}/scheduler.cpp ${SRC}/util.cpp)
+file(GLOB MAIN_SRC ${SRC}/*.cpp)
+
+target_sources(testScheduler PRIVATE testScheduler.cpp ${MAIN_SRC})

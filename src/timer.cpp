@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "timer.h"
 #include "util.h"
 
@@ -93,7 +95,8 @@ TimerManager::~TimerManager() {
 }
 
 Timer::ptr TimerManager::addTimer(uint64_t ms, std::function<void()> func, bool repeat) {
-    Timer::ptr timer = std::make_shared<Timer>(ms, func, repeat, this);
+    // Timer::ptr timer = std::make_shared<Timer>(ms, func, repeat, this);
+    Timer::ptr timer(new Timer(ms, func, repeat, this));
     writeMtx lck(m_rwMtx);
     addTimer(timer, lck);
     return timer;
@@ -157,7 +160,12 @@ bool TimerManager::hasTimer() {
     return !m_timers.empty();
 }
 
-void TimerManager::addTimer(Timer::ptr timer, writeMtx &lck) {
+void TimerManager::onTimerInsertedAtFront() {
+    std::cout << "onTimerInsertedAtFront()" << std::endl;
+}
+
+void TimerManager::addTimer(Timer::ptr timer, writeMtx &lck)
+{
     auto it = m_timers.insert(timer).first;
     bool isFirst = (it == m_timers.begin()) && !m_isTickled;
     if (isFirst) {
