@@ -49,6 +49,7 @@ public:
     virtual ~TimerManager();
 
     Timer::ptr addTimer(uint64_t ms, std::function<void()> func, bool repeat = false); // 添加定时器
+    Timer::ptr addConditionalTimer(uint64_t ms, std::function<void()>func, std::weak_ptr<void> weakCond, bool repeat = false); // 添加条件定时器
     uint64_t getNextTimer(); // 到最近一个定时器执行的时间间隔（毫秒）
     void listExpiredFunc(std::vector<std::function<void()>>& funcs); // 获取需要执行的定时器回调的回调列表
     bool hasTimer(); // 是否有定时器

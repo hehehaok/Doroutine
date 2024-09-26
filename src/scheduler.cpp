@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "scheduler.h"
+#include "hook.h"
 #include "util.h"
 
 namespace KSC {
@@ -102,6 +103,7 @@ bool Scheduler::stopping() {
 }
 
 void Scheduler::run() {
+    setHookEnable(true);
     setThis();
     if (KSC::GetThreadId() != m_rootThreadId) {
         Doroutine::threadMainDoroutineInit();

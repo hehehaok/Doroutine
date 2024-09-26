@@ -95,11 +95,21 @@ TimerManager::~TimerManager() {
 }
 
 Timer::ptr TimerManager::addTimer(uint64_t ms, std::function<void()> func, bool repeat) {
-    // Timer::ptr timer = std::make_shared<Timer>(ms, func, repeat, this);
     Timer::ptr timer(new Timer(ms, func, repeat, this));
     writeMtx lck(m_rwMtx);
     addTimer(timer, lck);
     return timer;
+}
+
+static void OnTimer(std::weak_ptr<void> weak_cond, std::function<void()> func) {
+    std::shared_ptr<void> tmp = weak_cond.lock();
+    if (tmp) {
+        func();
+    }
+}
+
+Timer::ptr TimerManager::addConditionalTimer(uint64_t ms, std::function<void()> func, std::weak_ptr<void> weakCond, bool repeat) {
+    return addTimer(ms, std::bind(OnTimer, weakCond, func), repeat);
 }
 
 uint64_t TimerManager::getNextTimer() {
