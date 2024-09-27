@@ -3,12 +3,15 @@
 #include <memory>
 #include <stdarg.h>
 
+#include "log.h"
 #include "doroutine.h"
 #include "iomanager.h"
 #include "fdManager.h"
 #include "hook.h"
 
 namespace KSC {
+
+static sylar::Logger::ptr g_logger = SYLAR_LOG_ROOT();
 
 static thread_local bool st_hookEnable = false;
 
@@ -130,7 +133,7 @@ retry:
             if (timer) {
                 timer->cancel();
             }
-            std::cout << hook_fun_name << " addEvent(" << fd << ", " << event << ") wrong";
+            SYLAR_LOG_ERROR(KSC::g_logger) << hook_fun_name << " addEvent(" << fd << ", " << event << ") wrong";
         }
     }
     return n;
@@ -263,7 +266,7 @@ int connect_with_timeout(int fd, const struct sockaddr* addr, socklen_t addrlen,
         if (timer) {
             timer->cancel();
         }
-        std::cout << "connect addEvent(" << fd << ", WRITE) error" << std::endl;
+        SYLAR_LOG_DEBUG(KSC::g_logger) << "connect addEvent(" << fd << ", WRITE) error" << std::endl;
     }
 
     int error = 0;

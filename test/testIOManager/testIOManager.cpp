@@ -8,6 +8,9 @@
 #include <chrono>
 
 #include "iomanager.h"
+#include "forTest.h"
+
+static sylar::Logger::ptr g_logger = SYLAR_LOG_ROOT();
 
 int sockfd;
 void watch_io_read();
@@ -15,25 +18,25 @@ void do_io_write2();
 
 // 写事件回调，只执行一次，用于判断非阻塞套接字connect成功
 void do_io_write() {
-    std::cout << "write callback" << std::endl;
+    SYLAR_LOG_INFO(g_logger) << "write callback";
     int so_err;
     socklen_t len = size_t(so_err);
     getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &so_err, &len);
     if(so_err) {
-        std::cout << "connect fail" << std::endl;
+        SYLAR_LOG_INFO(g_logger) << "connect fail";
         return;
     } 
-    std::cout << "connect success" << std::endl;
+    SYLAR_LOG_INFO(g_logger) << "connect success";
     KSC::IOManager::GetThis()->schedule(do_io_write2);
 }
 
 void watch_io_write() {
-    std::cout << "watch_io_write" << std::endl;
+    SYLAR_LOG_INFO(g_logger) << "watch_io_write";
     KSC::IOManager::GetThis()->addEvent(sockfd, KSC::IOManager::WRITE, do_io_write2);
 }
 
 void do_io_write2() {
-    std::cout << "write callback" << std::endl;
+    SYLAR_LOG_INFO(g_logger) << "write callback";
     char buf[1024] = "hello~\n";
     int writelen = 0;
     write(sockfd, buf, sizeof(buf));
@@ -43,19 +46,19 @@ void do_io_write2() {
 
 // 读事件回调，每次读取之后如果套接字未关闭，需要重新添加
 void do_io_read() {
-    std::cout << "read callback" << std::endl;
+    SYLAR_LOG_INFO(g_logger) << "read callback";
     char buf[1024] = {0};
     int readlen = 0;
     readlen = read(sockfd, buf, sizeof(buf));
     if(readlen > 0) {
         buf[readlen] = '\0';
-        std::cout << "read " << readlen << " bytes, read: " << buf;
+        SYLAR_LOG_INFO(g_logger) << "read " << readlen << " bytes, read: " << buf;
     } else if(readlen == 0) {
-        std::cout << "peer closed" << std::endl;
+        SYLAR_LOG_INFO(g_logger) << "peer closed";
         close(sockfd);
         return;
     } else {
-        std::cout << "err, errno=" << errno << ", errstr=" << std::endl;
+        SYLAR_LOG_INFO(g_logger) << "err, errno=" << errno << ", errstr=";
         close(sockfd);
         return;
     }
@@ -64,7 +67,7 @@ void do_io_read() {
 }
 
 void watch_io_read() {
-    std::cout << "watch_io_read" << std::endl;
+    SYLAR_LOG_INFO(g_logger) << "watch_io_read";
     KSC::IOManager::GetThis()->addEvent(sockfd, KSC::IOManager::READ, do_io_read);
 }
 
@@ -81,17 +84,17 @@ void test_io() {
     int rt = connect(sockfd, (const sockaddr*)&servaddr, sizeof(servaddr));
     if(rt != 0) {
         if(errno == EINPROGRESS) {
-            std::cout << "EINPROGRESS" << std::endl;
+            SYLAR_LOG_INFO(g_logger) << "EINPROGRESS";
             // 注册写事件回调，只用于判断connect是否成功
             // 非阻塞的TCP套接字connect一般无法立即建立连接，要通过套接字可写来判断connect是否已经成功
             KSC::IOManager::GetThis()->addEvent(sockfd, KSC::IOManager::WRITE, do_io_write);
             // 注册读事件回调，注意事件是一次性的
             KSC::IOManager::GetThis()->addEvent(sockfd, KSC::IOManager::READ, do_io_read);
         } else {
-            std::cout << "connect error, errno:" << errno << ", errstr:" << std::endl;
+            SYLAR_LOG_INFO(g_logger) << "connect error, errno:" << errno << ", errstr:";
         }
     } else {
-        std::cout << "else, errno:" << errno << ", errstr:" << std::endl;
+        SYLAR_LOG_INFO(g_logger) << "else, errno:" << errno << ", errstr:";
     }
 }
 
@@ -102,6 +105,7 @@ void test_iomanager() {
 }
 
 int main(int argc, char *argv[]) {
+    // KSC::forTest();
     test_iomanager();
     return 0;
 }

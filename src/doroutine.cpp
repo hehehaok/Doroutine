@@ -1,11 +1,13 @@
 #include <atomic>
-#include <iostream>
 #include <thread>
 
+#include "log.h"
 #include "doroutine.h"
 #include "scheduler.h"
 
 namespace KSC {
+
+static sylar::Logger::ptr g_logger = SYLAR_LOG_ROOT();
 
 static std::atomic<uint64_t> s_doroutineId {0};
 static std::atomic<uint64_t> s_doroutineCount {0};
@@ -17,12 +19,12 @@ Doroutine::Doroutine() {
     m_state = RUNNING;
 
     if (getcontext(&m_ctx)) {
-        std::cout << "getcontext wrong!" << std::endl;
+        SYLAR_LOG_ERROR(g_logger) << "getcontext wrong!";
     }
 
     ++s_doroutineCount;
     m_id = s_doroutineId++;
-    std::cout << "thread " << std::this_thread::get_id() << "'s main doroutine starts!" << std::endl;
+    SYLAR_LOG_DEBUG(g_logger) << "thread " << std::this_thread::get_id() << "'s main doroutine starts!";
 }
 
 Doroutine::Doroutine(std::function<void()> func, size_t stackSize, bool runInScheduler)
@@ -32,10 +34,9 @@ Doroutine::Doroutine(std::function<void()> func, size_t stackSize, bool runInSch
     
     m_stackSize = stackSize ? stackSize : 1024 * 128;
     m_stack = StackAllocator::Alloc(m_stackSize);
-    // std::cout << "m_stack is " << m_stack << std::endl;
 
     if (getcontext(&m_ctx)) {
-        std::cout << "getcontext wrong!" << std::endl;
+        SYLAR_LOG_ERROR(g_logger) << "getcontext wrong!";
     }
 
     m_ctx.uc_link = nullptr;
@@ -54,7 +55,7 @@ Doroutine::~Doroutine() {
     } else {
         SetThis(nullptr);
     }
-    std::cout << "doroutine " << m_id << "'s ~Doroutine done!" << std::endl;
+    SYLAR_LOG_DEBUG(g_logger) << "doroutine " << m_id << "'s ~Doroutine done!";
 }
 
 void Doroutine::resume() {
@@ -86,11 +87,11 @@ void Doroutine::yield() {
 
 void Doroutine::reset(std::function<void()> func) {
     if (!m_stack) {
-        std::cout << "m_stack is nullptr, cant reset" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "m_stack is nullptr, cant reset";
     }
 
     if (m_state != TERM) {
-        std::cout << "m_state is not TERM, cant reset" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "m_state is not TERM, cant reset";
     }
 
     m_func = func;
@@ -119,7 +120,10 @@ Doroutine::ptr Doroutine::GetMainThis()
 }
 
 uint64_t Doroutine::GetThisId() {
-    return st_threadCurdoroutine->getId();
+    if (st_threadCurdoroutine) {
+        return st_threadCurdoroutine->getId();
+    }
+    return 0;
 }
 
 void Doroutine::WorkFunc() {

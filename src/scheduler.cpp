@@ -6,6 +6,8 @@
 
 namespace KSC {
 
+static sylar::Logger::ptr g_logger = SYLAR_LOG_ROOT();
+
 static thread_local Scheduler *st_scheduler = nullptr; // 当前线程的调度器
 static thread_local Doroutine::ptr st_schedulerDoroutine = nullptr; // 当前线程的调度协程
 
@@ -38,7 +40,7 @@ Scheduler::~Scheduler() {
 void Scheduler::start() {
     std::lock_guard<std::mutex> lck(m_mtx);
     if (m_stopping) {
-        std::cout << "Scheduler is stopping" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "Scheduler is stopping";
         return;
     }
     m_threadPool.resize(m_threadCount);
@@ -87,11 +89,11 @@ Doroutine *Scheduler::GetMainDoroutine() {
 }
 
 void Scheduler::tickle() {
-    std::cout << "tickle" << std::endl;
+    SYLAR_LOG_DEBUG(g_logger) << "tickle";
 }
 
 void Scheduler::idle() {
-    std::cout << "idle" << std::endl;
+    SYLAR_LOG_DEBUG(g_logger) << "idle";
     while (!stopping()) {
         Doroutine::GetThis()->yield();
     }

@@ -11,9 +11,9 @@
 #include <atomic>
 
 #include "doroutine.h"
+#include "log.h"
 
 namespace KSC {
-
 class Scheduler {
 public:
     Scheduler(size_t threads = 1, bool useCaller = true, const std::string &name = "scheduler");
@@ -28,7 +28,6 @@ public:
         {
             std::lock_guard<std::mutex> lck(m_mtx);
             needTickle = scheduleNoLock(fc, thread);
-            std::cout << "current task num is " << m_tasks.size() << std::endl;
         }
 
         if (needTickle) {

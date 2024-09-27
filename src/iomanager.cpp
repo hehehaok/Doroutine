@@ -4,9 +4,12 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "log.h"
 #include "iomanager.h"
 
 namespace KSC {
+
+static sylar::Logger::ptr g_logger = SYLAR_LOG_ROOT();
 
 IOManager::FdContext::EventContext &IOManager::FdContext::getEventContext(Event event) {
     switch (event) {
@@ -15,7 +18,7 @@ IOManager::FdContext::EventContext &IOManager::FdContext::getEventContext(Event 
     case Event::WRITE:
         return write;
     default:
-        std::cout << "invalid argument" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "invalid argument";
         break;
     }
 }
@@ -28,7 +31,7 @@ void IOManager::FdContext::resetEventContext(EventContext &ctx) {
 
 void IOManager::FdContext::triggerEvent(Event event) {
     if (!(events & event)) {
-        std::cout << "triggerEvent wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "triggerEvent wrong!";
     }
 
     EventContext &ctx = getEventContext(event);
@@ -46,12 +49,12 @@ IOManager::IOManager(size_t threads, bool userCaller, const std::string &name)
     
     m_epfd = epoll_create(5000);
     if (m_epfd <= 0) {
-        std::cout << "epoll_create wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "epoll_create wrong!";
     }
 
     int rt = pipe(m_tickleFds);
     if (rt == -1) {
-        std::cout << "pipe wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "pipe wrong!";
     }
 
     epoll_event event;
@@ -61,12 +64,12 @@ IOManager::IOManager(size_t threads, bool userCaller, const std::string &name)
 
     rt = fcntl(m_tickleFds[0], F_SETFL, O_NONBLOCK);
     if (rt == -1) {
-        std::cout << "fcntl wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "fcntl wrong!";
     }
 
     rt = epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_tickleFds[0], &event);
     if (rt == -1) {
-        std::cout << "epoll_ctl wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "epoll_ctl wrong!";
     }
 
     contextResize(32);
@@ -107,7 +110,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> func) {
 
     int rt = epoll_ctl(m_epfd, op, fd, &epEvent);
     if (rt == -1) {
-        std::cout << "epoll ctl wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "epoll ctl wrong!";
         return -1;
     }
 
@@ -135,7 +138,7 @@ bool IOManager::delEvent(int fd, Event event) {
 
     std::unique_lock<std::mutex> lck2(fdCtx->mtx);
     if (!(fdCtx->events & event)) {
-        std::cout << "no event to delete!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "no event to delete!";
         return false;
     }
 
@@ -147,7 +150,7 @@ bool IOManager::delEvent(int fd, Event event) {
 
     int rt = epoll_ctl(m_epfd, op, fd, &epEvent);
     if (rt == -1) {
-        std::cout << "epoll ctl wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "epoll ctl wrong!";
         return false;
     }
 
@@ -169,7 +172,7 @@ bool IOManager::cancelEvent(int fd, Event event) {
 
     std::unique_lock<std::mutex> lck2(fdCtx->mtx);
     if (!(fdCtx->events & event)) {
-        std::cout << "no event to cancel!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "no event to cancel!";
         return false;
     }
 
@@ -181,7 +184,7 @@ bool IOManager::cancelEvent(int fd, Event event) {
 
     int rt = epoll_ctl(m_epfd, op, fd, &epEvent);
     if (rt == -1) {
-        std::cout << "epoll ctl wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "epoll ctl wrong!";
         return false;
     }
 
@@ -200,7 +203,7 @@ bool IOManager::cancelAll(int fd) {
 
     std::unique_lock<std::mutex> lck2(fdCtx->mtx);
     if (!fdCtx->events) {
-        std::cout << "no event to cancel!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "no event to cancel!";
         return false;
     }
 
@@ -211,7 +214,7 @@ bool IOManager::cancelAll(int fd) {
 
     int rt = epoll_ctl(m_epfd, op, fd, &epEvent);
     if (rt == -1) {
-        std::cout << "epoll ctl wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "epoll ctl wrong!";
         return false;
     }
 
@@ -227,17 +230,22 @@ bool IOManager::cancelAll(int fd) {
 }
 
 IOManager *IOManager::GetThis() {
-    return dynamic_cast<IOManager *>(Scheduler::GetThis());
+    IOManager *iom = dynamic_cast<IOManager *>(Scheduler::GetThis());
+    if (iom == nullptr) {
+        SYLAR_LOG_ERROR(g_logger) << "dynamic_cast fail!";
+        return nullptr;
+    }
+    return iom;
 }
 
 void IOManager::tickle() {
-    std::cout << "tickle" << std::endl;
+    SYLAR_LOG_DEBUG(g_logger) << "tickle";
     if(!hasIdleThreads()) {
         return;
     }
     int rt = write(m_tickleFds[1], "T", 1);
     if (rt == -1) {
-        std::cout << "write wrong!" << std::endl;
+        SYLAR_LOG_DEBUG(g_logger) << "write wrong!";
     }
 }
 
@@ -256,7 +264,7 @@ void IOManager::idle() {
     while(true) {
         uint64_t nextTimeout = 0;
         if (stopping(nextTimeout)) {
-            std::cout << "idle stop exit" << std::endl;
+            SYLAR_LOG_DEBUG(g_logger) << "idle stop exit";
             break;
         }
 
@@ -320,7 +328,7 @@ void IOManager::idle() {
 
             int rt2 = epoll_ctl(m_epfd, op, fdCtx->fd, &event);
             if (rt2 == -1) {
-                std::cout << "epoll ctl wrong!" << std::endl;
+                SYLAR_LOG_DEBUG(g_logger) << "epoll ctl wrong!";
                 continue;
             }
 

@@ -1,9 +1,13 @@
 #include <iostream>
 
+#include "log.h"
 #include "timer.h"
 #include "util.h"
 
 namespace KSC {
+
+static sylar::Logger::ptr g_logger = SYLAR_LOG_ROOT();
+
 bool Timer::cancel() {
     TimerManager::writeMtx lck(m_manager->m_rwMtx);
     if (m_func) {
@@ -171,7 +175,7 @@ bool TimerManager::hasTimer() {
 }
 
 void TimerManager::onTimerInsertedAtFront() {
-    std::cout << "onTimerInsertedAtFront()" << std::endl;
+    SYLAR_LOG_DEBUG(g_logger) << "onTimerInsertedAtFront()";
 }
 
 void TimerManager::addTimer(Timer::ptr timer, writeMtx &lck)

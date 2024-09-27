@@ -8,6 +8,12 @@ namespace KSC {
 
 pid_t GetThreadId();
 
+std::string GetThreadName();
+
+void SetThreadName(const std::string &name);
+
+uint64_t GetDoroutineId();
+
 uint64_t GetElapsedMS();
 
 };
