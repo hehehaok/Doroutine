@@ -25,11 +25,12 @@ private:
             Scheduler *scheduler = nullptr;
             Doroutine::ptr doroutine = nullptr;
             std::function<void()> func = nullptr;
+            bool repeat = false;
         };
 
         EventContext &getEventContext(Event event); // 根据触发的事件取得对应的上下文
         void resetEventContext(EventContext &ctx);  // 重置上下文
-        void triggerEvent(Event event); // 根据触发的事件触发对应的回调
+        void triggerEvent(Event event, bool lastTrigger = false); // 根据触发的事件触发对应的回调
 
         EventContext read;
         EventContext write;
@@ -37,12 +38,13 @@ private:
         Event events = NONE;
         std::mutex mtx;
     };
+    friend class FdContext;
 
 public:
     IOManager(size_t threads = 1, bool userCaller = true, const std::string &name = "IOManager");
     ~IOManager();
 
-    int addEvent(int fd, Event event, std::function<void()> func = nullptr); // 给特定标识符添加某一事件
+    int addEvent(int fd, Event event, std::function<void()> func = nullptr, bool repeat = false); // 给特定标识符添加某一事件
     bool delEvent(int fd, Event event); // 删除特定标识符的指定事件
     bool cancelEvent(int fd, Event event); // 删除特定标识符的指定事件，但会在删除前触发一次回调
     bool cancelAll(int fd); // 删除特定标识符的所有事件
@@ -57,6 +59,9 @@ protected:
 
     bool stopping(uint64_t &timeout);
     void contextResize(size_t size);
+
+    void incPendingEventCount() { ++m_pendingEventCount; }
+    void decPendingEventCount() { --m_pendingEventCount; }
 
 private:
     int m_epfd = 0;

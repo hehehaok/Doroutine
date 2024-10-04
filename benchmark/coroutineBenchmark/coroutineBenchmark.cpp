@@ -53,11 +53,6 @@ int socketInit() {
     }
 }
 
-void watchListenFd() {
-    KSC::IOManager::GetThis()->addEvent(listenFd, KSC::IOManager::READ, testAccept);
-    SYLAR_LOG_INFO(g_logger) << "watchListenFd over!";
-}
-
 void fdReadCallback(int fd) {
     SYLAR_LOG_INFO(g_logger) << "文件标识符" << fd << "的读事件触发!";
     char buffer[1024];
@@ -66,7 +61,6 @@ void fdReadCallback(int fd) {
         int ret = recv(fd, buffer, sizeof(buffer)-1, 0);
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             SYLAR_LOG_INFO(g_logger) << "本轮数据读取完毕!";
-            KSC::IOManager::GetThis()->addEvent(fd, KSC::IOManager::READ, std::bind(fdReadCallback, fd));
             break;
         }
         if (ret <= 0) {
@@ -90,18 +84,18 @@ void testAccept() {
     } else {
         SYLAR_LOG_INFO(g_logger) << "accept success! The addr:port of client is " << addr.sin_addr.s_addr << ":" << addr.sin_port;
         setNonblock(fd);
-        KSC::IOManager::GetThis()->addEvent(fd, KSC::IOManager::READ, std::bind(fdReadCallback, fd));
+        KSC::IOManager::GetThis()->addEvent(fd, KSC::IOManager::READ, std::bind(fdReadCallback, fd), true);
     }
-    KSC::IOManager::GetThis()->schedule(watchListenFd);
     SYLAR_LOG_INFO(g_logger) << "testAccept over!";
 }
 
 int main() {
+    // KSC::setLogLevelDebug();
     KSC::setLogDisable(); // 性能测试时关掉日志
     if (socketInit() < 0) {
         return -1;
     }
     KSC::IOManager iom;
-    KSC::IOManager::GetThis()->schedule(watchListenFd);
+    KSC::IOManager::GetThis()->addEvent(listenFd, KSC::IOManager::READ, testAccept, true);
     return 0;
 }

@@ -27,9 +27,10 @@ void IOManager::FdContext::resetEventContext(EventContext &ctx) {
     ctx.scheduler = nullptr;
     ctx.doroutine.reset();
     ctx.func = nullptr;
+    ctx.repeat = false;
 }
 
-void IOManager::FdContext::triggerEvent(Event event) {
+void IOManager::FdContext::triggerEvent(Event event, bool lastTrigger) {
     if (!(events & event)) {
         SYLAR_LOG_DEBUG(g_logger) << "triggerEvent wrong!";
     }
@@ -40,8 +41,11 @@ void IOManager::FdContext::triggerEvent(Event event) {
     } else {
         ctx.scheduler->schedule(ctx.doroutine);
     }
-    events = (Event)(events & ~event);
-    resetEventContext(ctx);
+    if (!ctx.repeat || lastTrigger) {
+        IOManager::GetThis()->decPendingEventCount();
+        events = (Event)(events & ~event);
+        resetEventContext(ctx);
+    }
 }
 
 IOManager::IOManager(size_t threads, bool userCaller, const std::string &name) 
@@ -89,7 +93,7 @@ IOManager::~IOManager() {
     }
 }
 
-int IOManager::addEvent(int fd, Event event, std::function<void()> func) {
+int IOManager::addEvent(int fd, Event event, std::function<void()> func, bool repeat) {
     FdContext *fdCtx = nullptr;
     readMtx lck(m_rwmtx);
     if ((int)m_fdContexts.size() > fd) {
@@ -119,6 +123,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> func) {
     fdCtx->events = (Event)(fdCtx->events | event);
     FdContext::EventContext &eventCtx = fdCtx->getEventContext(event);
 
+    eventCtx.repeat = repeat;
     eventCtx.scheduler = Scheduler::GetThis();
     if (func) {
         eventCtx.func.swap(func);
@@ -154,7 +159,7 @@ bool IOManager::delEvent(int fd, Event event) {
         return false;
     }
 
-    --m_pendingEventCount;
+    decPendingEventCount();
 
     fdCtx->events = newEvent;
     FdContext::EventContext &eventCtx = fdCtx->getEventContext(event);
@@ -188,8 +193,7 @@ bool IOManager::cancelEvent(int fd, Event event) {
         return false;
     }
 
-    fdCtx->triggerEvent(event);
-    --m_pendingEventCount;
+    fdCtx->triggerEvent(event, true);
     return true;
 }
 
@@ -219,12 +223,10 @@ bool IOManager::cancelAll(int fd) {
     }
 
     if (fdCtx->events & Event::READ) {
-        fdCtx->triggerEvent(Event::READ);
-        --m_pendingEventCount;
+        fdCtx->triggerEvent(Event::READ, true);
     }
-        if (fdCtx->events & Event::WRITE) {
-        fdCtx->triggerEvent(Event::WRITE);
-        --m_pendingEventCount;
+    if (fdCtx->events & Event::WRITE) {
+        fdCtx->triggerEvent(Event::WRITE, true);
     }
     return true;
 }
@@ -312,18 +314,25 @@ void IOManager::idle() {
             }
 
             int realEvents = NONE;
+            int leftEvents = NONE;
             if (event.events & EPOLLIN) {
-                realEvents |= Event::READ;
+                realEvents |= READ;
+                if (fdCtx->getEventContext(READ).repeat) {
+                    leftEvents |= READ;
+                }
             }
             if (event.events & EPOLLOUT) {
-                realEvents |= Event::WRITE;
+                realEvents |= WRITE;
+                if (fdCtx->getEventContext(WRITE).repeat) {
+                    leftEvents |= WRITE;
+                }
             }
 
             if (!(fdCtx->events & realEvents)) {
                 continue;
             }
 
-            int leftEvents = (fdCtx->events & ~realEvents);
+            leftEvents |= (fdCtx->events & ~realEvents);
             int op = leftEvents ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
             event.events = EPOLLET | leftEvents;
 
@@ -333,14 +342,12 @@ void IOManager::idle() {
                 continue;
             }
 
-            if (realEvents & Event::READ) {
-                fdCtx->triggerEvent(Event::READ);
-                --m_pendingEventCount;
+            if (realEvents & READ) {
+                fdCtx->triggerEvent(READ);
             }
             
-            if (realEvents & Event::WRITE) {
-                fdCtx->triggerEvent(Event::WRITE);
-                --m_pendingEventCount;
+            if (realEvents & WRITE) {
+                fdCtx->triggerEvent(WRITE);
             }
         } // end for
         Doroutine::ptr cur = Doroutine::GetThis();
@@ -348,6 +355,7 @@ void IOManager::idle() {
         cur.reset();
 
         rawPtr->yield();
+        SYLAR_LOG_DEBUG(g_logger) << "idle yield";
     } // end while(true)
 }
 

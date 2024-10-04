@@ -168,6 +168,7 @@ void Scheduler::run() {
                 break;
             }
             ++m_idleThreadCount;
+            SYLAR_LOG_DEBUG(g_logger) << "idle resume";
             idleDoroutine->resume();
             --m_idleThreadCount;
         }
