@@ -71,7 +71,7 @@ void testDoroutine4() {
 }
 
 int main() {
-    // KSC::forTest();
+    // KSC::setLogLevelDebug();
     SYLAR_LOG_INFO(g_logger) << "main begin";
 
     /** 

@@ -69,7 +69,7 @@ void test_sock() {
 }
 
 int main() {
-    KSC::forTest();
+    KSC::setLogLevelDebug();
     KSC::IOManager iom;
     iom.schedule(test_sleep);
 

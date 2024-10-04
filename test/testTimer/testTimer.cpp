@@ -32,7 +32,7 @@ void testTimer() {
 }
 
 int main() {
-    KSC::forTest();
+    KSC::setLogLevelDebug();
     testTimer();
     return 0;
 }

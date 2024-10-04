@@ -255,6 +255,7 @@ bool IOManager::stopping() {
 }
 
 void IOManager::idle() {
+    SYLAR_LOG_DEBUG(g_logger) << "idle";
     const uint64_t MAX_EVENTS = 256;
     epoll_event *events = new epoll_event[MAX_EVENTS];
     std::shared_ptr<epoll_event> shared_events(events, [](epoll_event *ptr) {

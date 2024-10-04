@@ -44,7 +44,7 @@ void allocateAndPrint(size_t stackSize) {
 }
 
 int main() {
-    // KSC::forTest();
+    // KSC::setLogLevelDebug();
     g_logger->setLevel(sylar::LogLevel::DEBUG);
     sylar::LogAppender::ptr writeAppender(new sylar::FileLogAppender("./log.txt"));
     g_logger->addAppender(writeAppender);

@@ -36,3 +36,6 @@ add_subdirectory(test/testScheduler)
 add_subdirectory(test/testTimer)
 add_subdirectory(test/testIOManager)
 add_subdirectory(test/testHook)
+
+add_subdirectory(benchmark/coroutineBenchmark)
+add_subdirectory(benchmark/libeventBenchmark)

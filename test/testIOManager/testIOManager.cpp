@@ -105,7 +105,7 @@ void test_iomanager() {
 }
 
 int main(int argc, char *argv[]) {
-    // KSC::forTest();
+    // KSC::setLogLevelDebug();
     test_iomanager();
     return 0;
 }
